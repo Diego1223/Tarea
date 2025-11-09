@@ -1,161 +1,104 @@
+//Tenemos un sistema de gestion de CARNICERIA
+//Lo primero que tenemos que tomar en cuenta es que tenemos 3 tablas de 3 tipos de datos
+//Res, pollo y pescado, cada tabla tiene los tipos id, nombre, stock, precio_kg
+
+import com.mysql.cj.protocol.Message;
 import java.sql.*;
 import java.util.Scanner;
 
-class Conexion {
-    private static final String URL = "jdbc:mysql://localhost:3306/pruebas?useSSL=false&serverTimezone=UTC";
+//No se puede instanciar objetos de esta clase
+abstract class Conexion {
+    private static final String URL = "jdbc:mysql://localhost:3306/tarea_carnes?useSSL=false&serverTimezone=UTC";
     private static final String USER = "root";
     private static final String PASSWORD = "tuclave";
 
     private Connection conexion;
 
     //Constructor
-    public static Connection conectar() {
+    public Conexion() {
         try {
-            return DriverManager.getConnection(URL, USER, PASSWORD);
+            conexion = DriverManager.getConnection(URL, USER, PASSWORD);
         } catch (SQLException e) {
             System.out.println("Error de conexion");
-            return null;
         }
     }
+    //Este metodo mostrara los productos, junto con su id, nombre, stock y precio_kg
+    //Para no escribir tanto codigo, recibe un string tipo para seleccionar la tabla
+    //Tenemos 3 tablas
+    public void mostrar_datos(String tipo) {
+        if (conexion != null) {
+            String query = "SELECT * FROM " + tipo;
+            try (Statement stmt = conexion.createStatement(); ResultSet rs = stmt.executeQuery(query)) {
 
+                //Recorrer los resultados para mostrarlos de una manera adecuada
+                while (rs.next()) {
+                    int id = rs.getInt("id");
+                    String nombre = rs.getString("nombre");
+                    int stock = rs.getInt("stock");
+                    int precio_kg = rs.getInt("precio_kg");
 
-    public static void crearUsuario(Scanner sc) {
-        System.out.print("Nombre -> ");
-        String nombre = sc.nextLine();
-        System.out.print("email -> ");
-        String email = sc.nextLine();
-
-        String sql = "INSERT INTO usuarios (nombre,email) VALUES (?,?)";
-        try (Connection conn = conectar(); PreparedStatement stmt =conn.prepareStatement(sql)){
-            stmt.setString(1, nombre);
-            stmt.setString(2, email);
-
-            int filas = stmt.executeUpdate();
-
-            if (filas > 0) {
-                System.out.println("Usuario creado correctamente");
-            } else {
-                System.out.println("No se inserto ningun registro!");
+                    System.out.println(id + " | " + nombre + " | " + stock + " | " + precio_kg);
+                }
+            } catch (SQLException e) {
+                System.out.println("Error al mostrar datos" + e.getMessage());
             }
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-
-    public static void listarUsuarios() {
-        String sql = "SELECT * FROM usuarios";
-        try (Connection conn = conectar();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-
-            System.out.println("\n--- Lista de usuarios ---");
-            while (rs.next()) {
-                System.out.printf("%d | %s | %s%n",
-                        rs.getInt("id"),
-                        rs.getString("nombre"),
-                        rs.getString("email"));
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public static void actualizarUsuario(Scanner sc) {
-        System.out.print("ID del usuario a actualizar: ");
-        int id = sc.nextInt();
-        sc.nextLine();
-        System.out.print("Nuevo nombre: ");
-        String nombre = sc.nextLine();
-        System.out.print("Nuevo email: ");
-        String email = sc.nextLine();
-
-        String sql = "UPDATE usuarios SET nombre=?, email=? WHERE id=?";
-        try (Connection conn = conectar();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setString(1, nombre);
-            stmt.setString(2, email);
-            stmt.setInt(3, id);
-            int filas = stmt.executeUpdate();
-
-            if (filas > 0) {
-                System.out.println("Usuario actualizado");
-            } else {
-                System.out.println("No se encontró ese ID");
-            }
-        } catch (SQLException e) {
-            System.out.println("Error desconocido");
-        }
-    }
-
-    public static void eliminarUsuario(Scanner sc) {
-        System.out.print("ID del usuario a eliminar: ");
-        int id = sc.nextInt();
-
-        String sql = "DELETE FROM usuarios WHERE id=?";
-        try (Connection conn = conectar();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setInt(1, id);
-            int filas = stmt.executeUpdate();
-
-            if (filas > 0) {
-                System.out.println(" Usuario eliminado");
-            } else {
-                System.out.println("No se encontró el ID");
-            }
-        } catch (SQLException e) {
-            System.out.println("Error");
+        } else {
+            System.out.println("No se pudo establecer la conexion");
         }
     }
 }
 
+//Esta es una clase hija de conexion
+class Res extends Conexion {
+    //Constructor
+    public Res() {
+        System.out.println("Esto es variedad de carne de res");
+        mostrar_datos("Res");
+    }
+}
 
+class Pollo extends Conexion {
+    public Pollo() {
+        System.out.println("Esto es variedad de carne de pollo");
+        mostrar_datos("Pollo");
+    }
+}
+
+class Pescado extends Conexion {
+    public Pescado() {
+        System.out.println("Esto es variedad de carne de pescado");
+        mostrar_datos("Pescado");
+    }
+}
 
 public class Main {
-    public static String centrar_texto(String cadena) {
-        int ancho_terminal = 150;
-        int longuitud_texto = cadena.length();
-        int espacios_totales = ancho_terminal - longuitud_texto;
-        int espacios_izq = espacios_totales / 2;
-        int espacios_der = espacios_totales - espacios_izq;
-
-        String padding_izq = " ".repeat(espacios_izq);
-        String padding_der = " ".repeat(espacios_der);
-
-        String resultado = (padding_izq + cadena + padding_der);
-        return resultado;
-
-    }
-
-
     public static void main(String[] args) throws Exception{
-        Scanner sc = new Scanner(System.in);
-        System.out.println(centrar_texto("Sistema CRUD"));
+        System.out.println("Bienvenido al sistema Gestion de base datos carniceria\nCual deseas modificar");
+        String [] opciones = {"Res", "Pollo", "Pescado"};
 
-        while (true) {
-            System.out.println("1. Crear usuario");
-            System.out.println("2. Listar usuarios");
-            System.out.println("3. Actualizar usuario");
-            System.out.println("4. Eliminar usuario");
-            System.out.println("5. Salir");
-            System.out.print("=> ");
-            int opcion = sc.nextInt();
-            sc.nextLine(); //Limpiar el buffer
+        //Este i lo usamos para poner indice numerico
+        int i = 1;
+        for (String str: opciones) {
+            System.out.println(i + ". " + str);
+            i++;
+        }
 
-            switch (opcion) {
-                case 1 -> Conexion.crearUsuario(sc);
-                case 2 -> Conexion.listarUsuarios();
-                case 3 -> Conexion.actualizarUsuario(sc);
-                case 4 -> Conexion.eliminarUsuario(sc);
-                case 5 -> {
-                    System.out.println("SALIENDO...");
-                    return;
-                }
-                default -> System.out.println("Opcion invalida");
-            }
+        //Esto lo hacemos para poder ingresar datos por teclado
+        Scanner scanner = new Scanner(System.in);
+        System.out.print("=> ");
+        int op = scanner.nextInt();
+
+        switch (op) {
+            case 1:
+                Res rs = new Res();
+                break;
+            case 2:
+                Pollo pl = new Pollo();
+                break;
+            case 3:
+                Pescado ps = new Pescado();
+                break;
         }
     }
-
 }
+
